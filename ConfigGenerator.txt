@@ -1,0 +1,600 @@
+// Spencer Carr
+// Metro Communications
+// Config Automation Program
+
+// Import utilities
+import javax.swing.*;
+import java.io.*;
+import java.nio.charset.*;
+import java.nio.file.*;
+import java.util.*;
+import java.util.stream.*;
+
+public class ConfigGenerator {
+	
+	// JFrame variable
+	private static JFrame x = new JFrame();
+	
+	// String variables
+	private static String speedNETWORK_STR, 
+						  speedCLIENT_STR, 
+						  speedNETWORK_CBS,
+						  speedCLIENT_CBS,
+						  overheadNETWORK_STR, 
+						  overheadCLIENT_STR, 
+						  deviceCHOICE,
+						  deviceHOSTNAME,
+						  deviceLOCATION,
+						  devicePREFIX, 
+						  oppCHOICE, 
+						  oppDIA, 
+						  oppVOICE,
+						  oppNAME, 
+						  ipVOICE_GW, 
+						  ipVOICE,  
+						  ipMGMT_GW,
+						  ipMGMT,
+						  vlanMGMT,
+						  vlanDIA, 
+						  vlanVOICE, 
+						  voiceNUMBER,
+						  voiceBLOCKS_IN,
+						  voiceBLOCKS_OUT,
+						  voicePASSTHROUGH_CHOICE,
+						  voicePASSTHROUGH_YES = "  description Phone Tagged 99 / LAN passthrough\n  spanning-tree edgeport\n  no shutdown\n  switchport access vlan 22\n  switchport voice vlan 99",
+						  voicePASSTHROUGH_NO = "  description Phone Access 99\n  spanning-tree edgeport\n  no shutdown\n  switchport access vlan 99";
+
+	// int variables
+	private static int 	speedNETWORK_INT, 
+						speedCLIENT_INT, 
+						overheadNETWORK_INT, 
+						overheadCLIENT_INT, 
+						voiceBLOCKS_SIZE = 0;
+	
+	// Object variables
+	private static Object[] deviceLIST = {"900e", "6355", "3140", "1550-24p", "1550-48p", "NID"}, 
+							oppLIST = {"DIA", "DIA & VOICE"},
+							voicePASSTHROUGH_LIST = {"On-Net Untagged Phones / Dedicated", "Off-Net Untagged Phones OR On-Net Tagged Phones / Passthrough"};
+	
+	// String array
+	private static String[] voiceBLOCKS_ARRAY;
+	
+	public static void main (String[] args) throws Exception {
+		
+		// Select the type of device
+		deviceCHOICE = (String)JOptionPane.showInputDialog(x, "Which device are you configuring?", "Metro Config Generator", JOptionPane.PLAIN_MESSAGE, null, deviceLIST, "");
+		
+		// If device is a 900e...
+		if (deviceCHOICE == "900e") {
+			
+			// Assign the adtran prefix
+			devicePREFIX = "ADTRAN-" + deviceCHOICE;
+			
+			// Declare hostname and location
+			deviceHOSTNAME = JOptionPane.showInputDialog(x, "Enter the Hostname");
+			deviceLOCATION = JOptionPane.showInputDialog(x, "Enter the Location");
+			
+			// Declare the gateway IP, public IP, VLAN ID, and number of voice blocks
+			ipVOICE_GW = JOptionPane.showInputDialog(x, "Enter the Voice Gateway IP");
+			ipVOICE = JOptionPane.showInputDialog(x, "Enter the Voice Public IP");
+			vlanVOICE = JOptionPane.showInputDialog(x, "Enter the Voice VLAN ID");
+			voiceBLOCKS_IN = JOptionPane.showInputDialog(x, "Enter the Number of Voice Blocks");
+			
+			// Convert the input to an int
+			voiceBLOCKS_SIZE = Integer.parseInt(voiceBLOCKS_IN);
+			
+			// Create new array for holding TNs
+			voiceBLOCKS_ARRAY = new String[voiceBLOCKS_SIZE];
+			
+			// While i is less than the length of voiceBlocks...
+			for (int i = 0; i < voiceBLOCKS_SIZE; i++) {
+				
+				// Declare a single TN
+				voiceNUMBER = JOptionPane.showInputDialog(x, "Enter the Voice Block Number" + i);
+				
+				// Add that TN to the numbers array
+				voiceBLOCKS_ARRAY[i] = voiceNUMBER;
+			}
+			
+		// Else if device is a 6355...
+		} else if (deviceCHOICE == "6355") {
+			
+			// Assign the adtran prefix
+			devicePREFIX = "ADTRAN-" + deviceCHOICE;
+			
+			// Choose whether the device will support passthrough or not
+			voicePASSTHROUGH_CHOICE = (String)JOptionPane.showInputDialog(x, "Choose the customer's phone setup", "Metro Config Generator", JOptionPane.PLAIN_MESSAGE, null, voicePASSTHROUGH_LIST, "");
+			
+			// Declare hostname and location
+			deviceHOSTNAME = JOptionPane.showInputDialog(x, "Enter the Hostname");
+			deviceLOCATION = JOptionPane.showInputDialog(x, "Enter the Location");
+			
+			// Declare the private mgmt IP, gateway IP, public IP, and VLAN ID
+			ipMGMT = JOptionPane.showInputDialog(x, "Enter the MGMT IP");
+			ipVOICE_GW = JOptionPane.showInputDialog(x, "Enter the Voice Gateway IP");
+			ipVOICE = JOptionPane.showInputDialog(x, "Enter the Voice Public IP");
+			vlanVOICE = JOptionPane.showInputDialog(x, "Enter the Voice VLAN ID");
+			
+		// Else if device is a 3140...
+		} else if (deviceCHOICE == "3140") {
+			
+			// Assign the adtran prefix
+			devicePREFIX = "ADTRAN-" + deviceCHOICE;
+			
+			// Declare hostname and location
+			deviceHOSTNAME = JOptionPane.showInputDialog(x, "Enter the Hostname");
+			deviceLOCATION = JOptionPane.showInputDialog(x, "Enter the Location");
+			
+			// Declare the private mgmt IP
+			ipMGMT = JOptionPane.showInputDialog(x, "Enter the MGMT IP");
+			
+		// Else if device is a 1550-24p...
+		} else if (deviceCHOICE == "1550-24p") {
+			
+			// Assign the adtran prefix
+			devicePREFIX = "ADTRAN-" + deviceCHOICE;
+			
+			// Declare hostname and location
+			deviceHOSTNAME = JOptionPane.showInputDialog(x, "Enter the Hostname");
+			deviceLOCATION = JOptionPane.showInputDialog(x, "Enter the Location");
+			
+			// Declare the private mgmt IP
+			ipMGMT = JOptionPane.showInputDialog(x, "Enter the MGMT IP");
+			
+		// Else if device is a 1550-48p...
+		} else if (deviceCHOICE == "1550-48p") {
+			
+			// Assign the adtran prefix
+			devicePREFIX = "ADTRAN-" + deviceCHOICE;
+			
+			// Declare hostname and location
+			deviceHOSTNAME = JOptionPane.showInputDialog(x, "Enter the Hostname");
+			deviceLOCATION = JOptionPane.showInputDialog(x, "Enter the Location");
+			
+			// Declare the private mgmt IP
+			ipMGMT = JOptionPane.showInputDialog(x, "Enter the MGMT IP");
+			
+		// Else if device is a NID...
+		} else if (deviceCHOICE == "NID") {
+			
+			// Assign no prefix
+			devicePREFIX = deviceCHOICE;
+			
+			// Choose what type of opp(s) this device is for
+			oppCHOICE = (String)JOptionPane.showInputDialog(x, "Which type of OPP is this device for?", "Metro Config Generator", JOptionPane.PLAIN_MESSAGE, null, oppLIST, "");
+			
+			// Declare hostname and location
+			deviceHOSTNAME = JOptionPane.showInputDialog(x, "Enter Hostname (With Dashes!!!)");
+			deviceLOCATION = JOptionPane.showInputDialog(x, "Enter Location");
+
+			// Declare the gateway IP, mgmt IP, and mgmt VLAN
+			ipMGMT_GW = JOptionPane.showInputDialog(x, "Enter the MGMT Gateway IP");
+			ipMGMT = JOptionPane.showInputDialog(x, "Enter the MGMT Private IP");
+			vlanMGMT = JOptionPane.showInputDialog(x, "Enter the MGMT VLAN ID");
+			
+			// If oppChoice is DIA & VOICE...
+			if (oppCHOICE == "DIA & VOICE") {
+				
+				// Declare dia opp and voice opp names
+				oppDIA = JOptionPane.showInputDialog(x, "Enter the DIA Opportunity Name");
+				oppVOICE = JOptionPane.showInputDialog(x, "Enter the Voice Opportunity Name");
+				
+				// Combine opp names into one variable
+				oppNAME = oppDIA + ", " + oppVOICE;
+				
+				// Declare DIA and VOICE VLANs
+				vlanDIA = JOptionPane.showInputDialog(x, "Enter the DIA VLAN ID");
+				vlanVOICE = JOptionPane.showInputDialog(x, "Enter the Voice VLAN ID");
+				
+			// Else if oppChoice is DIA...
+			} else if (oppCHOICE == "DIA") {
+				
+				// Declare oppName and DIA VLAN
+				oppNAME = JOptionPane.showInputDialog(x, "Enter the Opportunity Name");
+				vlanDIA = JOptionPane.showInputDialog(x, "Enter the DIA VLAN ID");
+			}
+			
+			// Declare network and client speeds
+			speedNETWORK_STR = JOptionPane.showInputDialog(x, "Enter the Upload Speed in Mb");
+			speedCLIENT_STR = JOptionPane.showInputDialog(x, "Enter the Download Speed in Mb");
+			
+			// Convert speed to an integer
+			speedNETWORK_INT = Integer.parseInt(speedNETWORK_STR);
+			speedCLIENT_INT = Integer.parseInt(speedCLIENT_STR);
+			
+			// Convert from Mb to b
+			speedNETWORK_INT = speedNETWORK_INT * 1000;
+			speedCLIENT_INT = speedCLIENT_INT * 1000;
+			
+			// Set overhead as 10% of speed
+			overheadNETWORK_INT = speedNETWORK_INT / 10;
+			overheadCLIENT_INT = speedCLIENT_INT / 10;
+			
+			// Convert overhead and speed from int to String
+			speedNETWORK_STR = Integer.toString(speedNETWORK_INT);
+			overheadNETWORK_STR = Integer.toString(overheadNETWORK_INT);
+			speedCLIENT_STR = Integer.toString(speedCLIENT_INT);
+			overheadCLIENT_STR = Integer.toString(overheadCLIENT_INT);
+			
+			// If network speed is greater than or equal to 100000...
+			if (speedNETWORK_INT >= 100000) {
+				
+				// Set network CBS to 256
+				speedNETWORK_CBS = "256";
+				
+			// Else...
+			} else {
+				
+				// Set network CBS to 128
+				speedNETWORK_CBS = "128";
+			}
+			
+			// If client speed is greater than or equal to 100000...
+			if (speedCLIENT_INT >= 100000) {
+				
+				// Set client CBS to 256
+				speedCLIENT_CBS = "256";
+				
+			// Else...
+			} else {
+				
+				// Set client CBS to 128
+				speedCLIENT_CBS = "128";
+			}
+		}
+		
+		// Create new file from config template
+		File fileTEMPLATE = new File("\\\\192.168.0.3\\it\\ConfigGenerator\\Templates\\" + devicePREFIX + "-BASE.txt");
+		
+		// Create new file from the VB template
+		File fileTEMPLATE_VB = new File("\\\\192.168.0.3\\it\\ConfigGenerator\\Templates\\ADTRAN-900e-VOICE-USER.txt");
+		
+		// Create new config file
+		File fileNEW = new File("\\\\192.168.0.3\\it\\ConfigGenerator\\ConfigFileOutput\\" + deviceHOSTNAME + ".txt");
+		
+		// Create new VB file
+		File fileNEW_VB = new File("\\\\192.168.0.3\\it\\ConfigGenerator\\ConfigFileOutput\\" + deviceHOSTNAME + "-VB.txt");
+		
+		// Call method for copying files to new files
+		fileCOPY(fileTEMPLATE, fileNEW);
+		
+		// If device is an adtran...
+		if (deviceCHOICE == "900e") {
+			
+			// Create a copy of the voice block template file
+			fileCOPY(fileTEMPLATE_VB, fileNEW_VB);
+			
+			// Call method to generate a voice block
+			voiceBLOCKS_GENERATE(fileNEW_VB, voiceBLOCKS_ARRAY);
+			
+			// Create a variable that is the result of calling a method to convert the voice block to a string
+			voiceBLOCKS_OUT = voiceBLOCKS_toSTR(fileNEW_VB);
+			
+			// Call method to insert voice block into main config file
+			voiceBLOCKS_INSERT(fileNEW, voiceBLOCKS_OUT);
+			
+			// Call method for replacing variables in the config file
+			deviceREPLACE_900E(fileNEW, deviceHOSTNAME, deviceLOCATION, vlanVOICE, ipVOICE_GW, ipVOICE);
+			
+		// Else if device is a 6355
+		} else if (deviceCHOICE == "6355") {
+			
+			// Call method for replacing variables in the config file
+			deviceREPLACE_6355(fileNEW, deviceHOSTNAME, deviceLOCATION, vlanVOICE, ipVOICE_GW, ipVOICE, ipMGMT);
+			
+		// Else if device is a 3140
+		} else if (deviceCHOICE == "3140") {
+			
+			// Call method for replacing variables in the config file
+			deviceREPLACE_3140(fileNEW, deviceHOSTNAME, deviceLOCATION, ipMGMT);
+			
+		// Else if device is a 1550
+		} else if (deviceCHOICE == "1550-24p" || deviceCHOICE == "1550-48p") {
+			
+			// Call method for replacing variables in the config file
+			deviceREPLACE_1550(fileNEW, deviceHOSTNAME, deviceLOCATION, ipMGMT);
+			
+		// Else if device is a NID
+		} else if (deviceCHOICE == "NID") {
+			
+			// Call method for replacing variables in the config file
+			deviceREPLACE_NID(fileNEW, deviceHOSTNAME, ipMGMT_GW, ipMGMT, vlanMGMT, deviceLOCATION, oppNAME, vlanDIA, vlanVOICE, speedNETWORK_STR, 
+					speedCLIENT_STR, overheadNETWORK_STR, overheadCLIENT_STR, speedNETWORK_CBS, speedCLIENT_CBS);
+		}
+		
+		// Exit after finished generating config file
+		System.exit(0);
+	}
+	
+	// Method that replaces variables in the main config file
+	public static void deviceREPLACE_900E (File fileNEW, String deviceHOSTNAME, String deviceLOCATION, String vlanVOICE, String ipVOICE_GW, String ipVOICE) throws Exception {
+		
+		// Create a new path to the main config file
+		Path path = Paths.get(fileNEW + "");
+		
+		// Create a new charset
+		Charset charset = StandardCharsets.UTF_8;
+		
+		// Create new string that reads the entire file found at path
+		String content = new String (Files.readAllBytes(path));
+		
+		// Replaces each variable with the input from the dialogue boxes
+		content = content.replace("$DEVICE_HOSTNAME", deviceHOSTNAME);
+		Files.write(path, content.getBytes(charset));
+		content = content.replace("$DEVICE_LOCATION", deviceLOCATION);
+		Files.write(path, content.getBytes(charset));
+
+		// Ask for voice information
+		content = content.replace("$VLAN_VOICE", vlanVOICE);
+		Files.write(path, content.getBytes(charset));
+		content = content.replace("$IP_VOICE_GW", ipVOICE_GW);
+		Files.write(path, content.getBytes(charset));
+		content = content.replace("$IP_VOICE", ipVOICE);
+		Files.write(path, content.getBytes(charset));
+	}
+	
+	// Method that replaces variables in the main config file
+	public static void deviceREPLACE_6355 (File fileNEW, String deviceHOSTNAME, String deviceLOCATION, String vlanVOICE, String ipVOICE_GW, String ipVOICE, String ipMGMT) throws Exception {
+		
+		// Create a new path to the main config file
+		Path path = Paths.get(fileNEW + "");
+		
+		// Create a new charset
+		Charset charset = StandardCharsets.UTF_8;
+		
+		// Create new string that reads the entire file found at path
+		String content = new String (Files.readAllBytes(path));
+		
+		// Replaces each variable with the input from the dialogue boxes
+		content = content.replace("$DEVICE_HOSTNAME", deviceHOSTNAME);
+		Files.write(path, content.getBytes(charset));
+		content = content.replace("$DEVICE_LOCATION", deviceLOCATION);
+		Files.write(path, content.getBytes(charset));
+
+		// Replace variable with ipMGMT
+		content = content.replace("$IP_MGMT", ipMGMT);
+		Files.write(path, content.getBytes(charset));	
+		
+		// Ask for voice information
+		content = content.replace("$VLAN_VOICE", vlanVOICE);
+		Files.write(path, content.getBytes(charset));
+		content = content.replace("$IP_VOICE_GW", ipVOICE_GW);
+		Files.write(path, content.getBytes(charset));
+		content = content.replace("$IP_VOICE", ipVOICE);
+		Files.write(path, content.getBytes(charset));
+
+		// If device is a 6355 and voice pathrough choice is yes...
+		if (voicePASSTHROUGH_CHOICE == "On-Net Untagged Phones / Dedicated") {
+			
+			// Add passthrough info to ports
+			content = content.replace("$VOICE_PASSTHROUGH", voicePASSTHROUGH_NO);
+			Files.write(path, content.getBytes(charset));
+			
+		// If device is a 6355 and voice passthrough choice is no
+		} else if (voicePASSTHROUGH_CHOICE == "Off-Net Untagged Phones OR On-Net Tagged Phones / Passthrough") {
+			
+			// Add no passthrough info to ports
+			content = content.replace("$VOICE_PASSTHROUGH", voicePASSTHROUGH_YES);
+			Files.write(path, content.getBytes(charset));
+		}
+	}
+	
+	// Method that replaces variables in the main config file
+	public static void deviceREPLACE_3140 (File fileNEW, String deviceHOSTNAME, String deviceLOCATION, String ipMGMT) throws Exception {
+		
+		// Create a new path to the main config file
+		Path path = Paths.get(fileNEW + "");
+		
+		// Create a new charset
+		Charset charset = StandardCharsets.UTF_8;
+		
+		// Create new string that reads the entire file found at path
+		String content = new String (Files.readAllBytes(path));
+		
+		// Replaces each variable with the input from the dialogue boxes
+		content = content.replace("$DEVICE_HOSTNAME", deviceHOSTNAME);
+		Files.write(path, content.getBytes(charset));
+		content = content.replace("$DEVICE_LOCATION", deviceLOCATION);
+		Files.write(path, content.getBytes(charset));
+
+		// Replace variable with ipMGMT
+		content = content.replace("$IP_MGMT", ipMGMT);
+		Files.write(path, content.getBytes(charset));	
+	}
+
+	// Method that replaces variables in the main config file
+	public static void deviceREPLACE_1550 (File fileNEW, String deviceHOSTNAME, String deviceLOCATION, String ipMGMT) throws Exception {
+		
+		// Create a new path to the main config file
+		Path path = Paths.get(fileNEW + "");
+		
+		// Create a new charset
+		Charset charset = StandardCharsets.UTF_8;
+		
+		// Create new string that reads the entire file found at path
+		String content = new String (Files.readAllBytes(path));
+		
+		// Replaces each variable with the input from the dialogue boxes
+		content = content.replace("$DEVICE_HOSTNAME", deviceHOSTNAME);
+		Files.write(path, content.getBytes(charset));
+		content = content.replace("$DEVICE_LOCATION", deviceLOCATION);
+		Files.write(path, content.getBytes(charset));
+
+		// Replace variable with ipMGMT
+		content = content.replace("$IP_MGMT", ipMGMT);
+		Files.write(path, content.getBytes(charset));	
+	}
+	
+	// Method that replaces variables in the main config file
+	public static void deviceREPLACE_NID (File fileNEW, String deviceHOSTNAME, String ipMGMT_GW, String ipMGMT, String vlanMGMT, String deviceLOCATION, String oppNAME, String vlanDIA, String vlanVOICE, 
+			String speedNETWORK_STR, String speedCLIENT_STR, String overheadNETWORK_STR, String overheadCLIENT_STR, String speedNETWORK_CBS, String speedCLIENT_CBS) throws Exception {
+		
+		// Create a new path to the main config file
+		Path path = Paths.get(fileNEW + "");
+		
+		// Create a new charset
+		Charset charset = StandardCharsets.UTF_8;
+		
+		// Create new string that reads the entire file found at path
+		String content = new String (Files.readAllBytes(path));
+		
+		// Replaces each variable with the input from the dialogue boxes
+		content = content.replace("$DEVICE_HOSTNAME", deviceHOSTNAME);
+		Files.write(path, content.getBytes(charset));
+		content = content.replace("$IP_MGMT_GW", ipMGMT_GW);
+		Files.write(path, content.getBytes(charset));
+		content = content.replace("$IP_MGMT", ipMGMT);
+		Files.write(path, content.getBytes(charset));
+		content = content.replace("$VLAN_MGMT", vlanMGMT);
+		Files.write(path, content.getBytes(charset));
+		content = content.replace("$DEVICE_LOCATION", deviceLOCATION);
+		Files.write(path, content.getBytes(charset));
+		content = content.replace("$OPP_NAME", oppNAME);
+		Files.write(path, content.getBytes(charset));
+		content = content.replace("$VLAN_DIA", vlanDIA);
+		Files.write(path, content.getBytes(charset));
+		content = content.replace("$SPEED_NETWORK", speedNETWORK_STR);
+		Files.write(path, content.getBytes(charset));
+		content = content.replace("$SPEED_CLIENT", speedCLIENT_STR);
+		Files.write(path, content.getBytes(charset));
+		content = content.replace("$OVERHEAD_NETWORK", overheadNETWORK_STR);
+		Files.write(path, content.getBytes(charset));
+		content = content.replace("$OVERHEAD_CLIENT", overheadCLIENT_STR);
+		Files.write(path, content.getBytes(charset));
+		content = content.replace("$CBS_NETWORK", speedNETWORK_CBS);
+		Files.write(path, content.getBytes(charset));
+		content = content.replace("$CBS_CLIENT", speedCLIENT_CBS);
+		Files.write(path, content.getBytes(charset));
+		
+		// If oppChoice is DIA & VOICE...
+		if (oppCHOICE == "DIA & VOICE") {
+			
+			// Replace $VLAN-VOICE with the vlanVOICE variable
+			content = content.replace("$VLAN_VOICE", vlanVOICE);
+			Files.write(path, content.getBytes(charset));
+			
+			// Replace # $VOICE-OPP with a blank space
+			content = content.replace("# $OPP_VOICE", "");
+			Files.write(path, content.getBytes(charset));
+		}
+	}
+	
+	// Method to copy data from files into a new file
+	public static void fileCOPY (File fileTEMPLATE, File fileNEW) throws Exception {
+		
+		// Declare new input/output streams
+		FileInputStream in = new FileInputStream(fileTEMPLATE);
+		FileOutputStream out = new FileOutputStream(fileNEW);
+		
+		try {
+			
+			int x;
+			
+			// While loop that outputs data to the new file until it has read everything
+			while ((x = in.read()) != -1) {
+				
+				out.write(x);
+			}
+			
+		// Closes the input and output files after reading through and copying all the data
+		} finally {
+			
+			if (in != null) {
+				
+				in.close();
+			}
+			
+			if (out != null) {
+				
+				out.close();
+			}
+		}
+	}
+	
+	// Method that generates a voice block
+	public static void voiceBLOCKS_GENERATE (File fileNEW, String[] voiceBLOCKS_ARRAY) throws Exception {
+		
+		// Creates a new custom alphabet for creating a random password
+		String alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789~`!@#$%^&*()-_=+[{]}\\|;:\'\",<.>/?";
+		
+		// Create a new stringbuilder
+		StringBuilder sb = new StringBuilder();
+		
+		// Create a new random object
+		Random rnd = new Random();
+		
+		//While loop that runs for the length of the password(15)
+		while (sb.length() < 15) {
+			
+			// Gets a random character from the custom alphabet
+			int index = (int) (rnd.nextFloat() * alphabet.length());
+			
+			// Appends the random character to the stringbuilder to create the password
+			sb.append(alphabet.charAt(index));
+		}
+		
+		// Converts the stringbuilder password to a string
+		String pwd = sb.toString();
+		
+		// Creates a new path to the voice block file
+		Path path = Paths.get(fileNEW + "");
+		
+		// Creates a new charset
+		Charset charset = StandardCharsets.UTF_8;
+		
+		// Creates a new string for reading everything from the file found at path
+		String content = new String (Files.readAllBytes(path));
+		
+		//Replaces the sip pw with the random password generated earlier
+		content = content.replace("$PWSIP", pwd);
+		Files.write(path, content.getBytes(charset));
+		
+		// For loop that replaces each voice user's TN with a number from the array until there are no more
+		for (int i = 0; i < voiceBLOCKS_ARRAY.length; i++) {
+			
+			content = content.replace("$TN" + i, voiceBLOCKS_ARRAY[i]);
+			Files.write(path, content.getBytes(charset));
+		}
+	}
+	
+	// Method that inserts the voice block into the main config file
+	public static void voiceBLOCKS_INSERT (File fileNEW, String voiceBLOCKS_OUT) throws Exception {
+		
+		// Create a new path to the main config file
+		Path path = Paths.get(fileNEW + "");
+		
+		//Create new charset
+		Charset charset = StandardCharsets.UTF_8;
+		
+		// Create a new string to read everything in the file at path
+		String content = new String (Files.readAllBytes(path));
+		
+		// Replace variable in file with the voice block string
+		content = content.replace("$VOICE_BLOCKS", voiceBLOCKS_OUT);
+		Files.write(path, content.getBytes(charset));
+	}
+	
+	// Method that converts the voice block to a string and cuts out unnecessary voice users
+	public static String voiceBLOCKS_toSTR (File newFILE_VB) throws Exception {
+		
+		// Create a new path to the voice block file
+		String path = newFILE_VB + "";
+		
+		// Create a new stringbuilder object
+		StringBuilder readFile = new StringBuilder();
+		
+		try (Stream<String> stream = Files.lines(Paths.get(path))) {
+			
+			stream.forEach(s -> readFile.append(s).append("\n"));
+		}
+		
+		// Creates a new object that is the result of converting the file to string
+		String tempString = readFile.toString();
+		
+		// Splits the file at the last filled voice user and only keeps the first part of the split
+		String finalString = tempString.substring(0, tempString.indexOf("voice user $"));
+		
+		// Return the new string
+		return finalString;
+	}
+}
